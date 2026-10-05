@@ -24,3 +24,4 @@ errorCode
 # Tracked on purpose (listed so a fresh git add includes them)
 !PPYTHON_PATH
 !toontown/bots/activities/interiors.json
+!docs/screenshots/*.jpg
