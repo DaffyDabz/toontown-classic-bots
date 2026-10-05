@@ -1,0 +1,26 @@
+*.pyc
+*.pyo
+*.pyd
+*.log
+resources/
+news/
+sign/
+whitelist/
+*.so
+*.DS_Store
+*.jpg
+.idea
+venv/
+*.json
+!win32/.vscode/tasks.json
+!linux/.vscode/tasks.json
+!darwin/.vscode/tasks.json
+*.buildings
+*.trackRecords
+PPYTHON_PATH
+local/
+errorCode
+
+# Tracked on purpose (listed so a fresh git add includes them)
+!PPYTHON_PATH
+!toontown/bots/activities/interiors.json

@@ -1,0 +1,3 @@
+# Windows batch files need CRLF, shell scripts need LF, whatever the cloner's git settings are.
+*.bat text eol=crlf
+*.sh text eol=lf

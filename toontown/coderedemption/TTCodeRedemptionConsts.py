@@ -1,0 +1,11 @@
+from enum import IntEnum
+DefaultDbName = 'tt_code_redemption'
+RedeemErrors = IntEnum('RedeemErrors', 'Success, CodeDoesntExist, CodeIsInactive, CodeAlreadyRedeemed, AwardCouldntBeGiven, TooManyAttempts, SystemUnavailable, ', start=0)
+RedeemErrorStrings = {RedeemErrors.Success: 'Success',
+ RedeemErrors.CodeDoesntExist: 'Invalid code',
+ RedeemErrors.CodeIsInactive: 'Code is inactive',
+ RedeemErrors.CodeAlreadyRedeemed: 'Code has already been redeemed',
+ RedeemErrors.AwardCouldntBeGiven: 'Award could not be given',
+ RedeemErrors.TooManyAttempts: 'Too many attempts, code ignored',
+ RedeemErrors.SystemUnavailable: 'Code redemption is currently unavailable'}
+MaxCustomCodeLen = config.GetInt('tt-max-custom-code-len', 16)
