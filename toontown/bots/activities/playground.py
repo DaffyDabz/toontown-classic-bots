@@ -13,6 +13,7 @@ No random jumping: nothing here sends a jump, Belly Flop or Banana Peel.
 import math
 import random
 
+from toontown.bots import space
 from toontown.bots.activities import Activity, register
 from toontown.bots.activities import lifekit as kit
 from toontown.bots.BotToon import WALK_SPEED, tripSpeed
@@ -94,7 +95,8 @@ class Hangout(_Life):
     def step(self, now):
         bot = self.bot
         if bot.path:
-            if now > self.walkUntil:
+            # (the walk there only: a shuffle or a step aside during the stay is not cut short)
+            if now > self.walkUntil and not self.stayUntil:
                 bot.stopWalking()
                 return False
             return True
@@ -171,7 +173,9 @@ class Wander(_Life):
                 bots = self.director.bots
                 for o in bot.view.ofClass('DistributedToon') if bot.view else ():
                     pos = bots[o.doId].pos if o.doId in bots else o.pos      # bots' own moves never echo back
-                    if o.doId != bot.avId and o.doId not in self.greeted and (pos - bot.pos).length() < 9.0:
+                    # personal space: a toon right beside me is walked past, never stopped inside
+                    if o.doId != bot.avId and o.doId not in self.greeted and \
+                            space.GAP + 1.5 <= (pos - bot.pos).length() < 9.0:
                         self.greeted.add(o.doId)
                         bot.stopWalking()
                         bot.faceTo(pos)

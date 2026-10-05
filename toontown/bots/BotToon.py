@@ -23,6 +23,7 @@ from panda3d.core import Point3
 
 from otp.distributed.OtpDoGlobals import OTP_DO_ID_FRIEND_MANAGER, OTP_DO_ID_TT_FRIENDS_MANAGER
 from otp.otpbase import OTPGlobals
+from toontown.bots import space
 from toontown.toonbase import ToontownGlobals
 
 WALK_SPEED = 8.0                           # ft/s strolling
@@ -158,6 +159,7 @@ class BotToon:
         self.seenCallback = None
         self.freeSince = 0.0
         self.arrivedAt = 0.0
+        self.stoodAt = 0.0          # personal space (space.py): when it last stopped walking
         self.stall = 0
 
     def __repr__(self):
@@ -319,6 +321,7 @@ class BotToon:
                 self.h = h
             self.broadcastNow()
             self.moving = False
+            self.stoodAt = globalClock.getRealTime()
         if anim is not None:
             self.setAnim(anim, force=True)
         if area is not None:
@@ -443,6 +446,8 @@ class BotToon:
         if not self.path and self.travel is None and self.anim in ('walk', 'run') and self.state == 'present' \
                 and not (self.activity is not None and getattr(self.activity, 'fast', False)):
             self.setAnim('neutral')           # never walk on the spot
+        if not self.path and self.travel is None and self.state == 'present':
+            space.settle(self, now)           # personal space: a toon standing inside mine for a while -> a step aside
         if now >= getattr(self, 'groundAt', 0.0):
             self.groundAt = now + GROUND_EVERY
             self.__groundGuard()
@@ -516,6 +521,7 @@ class BotToon:
         if h is not None:
             self.h = h
         self.dirty = True
+        self.stoodAt = globalClock.getRealTime()
 
     def faceTo(self, target):
         dx, dy = target[0] - self.pos[0], target[1] - self.pos[1]
@@ -523,12 +529,16 @@ class BotToon:
             self.h = math.degrees(math.atan2(-dx, dy))
             self.dirty = True
 
-    def walkTo(self, node, speed=WALK_SPEED, anim=None):
-        """Walk the proven walk-map edges from where I stand to node. False when unreachable."""
+    def walkTo(self, node, speed=WALK_SPEED, anim=None, exact=False):
+        """Walk the proven walk-map edges from where I stand to node. False when unreachable.
+        Personal space (owner 10-04): I stop on node itself only when no toon stands (or is headed) within GAP ft
+        of it, else on the nearest free node a step or two round it (space.spotFor); exact=True walks to node."""
         wm = self.area.wm
         start = self.node if self.node is not None else wm.nearestNode(self.pos[0], self.pos[1], self.pos[2])
         if start is None or node is None:
             return False
+        if not exact:
+            node = space.spotFor(self, node)
         nodes = wm.pathNodes(start, node)
         if not nodes:
             return False
@@ -560,7 +570,7 @@ class BotToon:
         """Walk to the walk-map node nearest (x, y, z), then straight on to (x, y, z) itself
         (a tunnel mouth, a door step: the last few feet the baker left off the map)."""
         k = self.area.wm.nearestNode(x, y, z)
-        if not self.walkTo(k, speed, anim) and k != self.node:
+        if not self.walkTo(k, speed, anim, exact=True) and k != self.node:
             return False
         self.path.append((x, y, z, None))
         self.setAnim(anim or ('run' if speed > WALK_SPEED + 2 else 'walk'))
@@ -607,6 +617,8 @@ class BotToon:
             m[7] += (want - dist) / self.speed        # and the move time it took
             if not self.path:
                 self.__moveEnd(True)
+        if not self.path:
+            self.stoodAt = self.lastTick              # personal space: of two toons in one spot, the last one in steps
         if not self.path and self.anim in ('walk', 'run') and self.travel is None:
             self.setAnim('neutral')                   # clients see it once the glide has played (setAnim)
 

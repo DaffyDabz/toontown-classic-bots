@@ -79,6 +79,10 @@ into the database are a bot's starting toon, the Cog HQ crew's Cog suits and gag
 - **Playgrounds.** They hang out in loose groups at landmarks (fountain, gazebo, trolley, gag shop, Toon HQ and so on),
   turn to each other, wander with natural pauses, greet or wave at toons they pass and use emotes. No random jumping:
   never a jump, Belly Flop or Banana Peel.
+- **Personal space.** Wherever they stop (a group at a landmark, a shop or building door, the trolley, a fishing pond,
+  a facility or boss elevator, near a battle they are not in) they keep about 2.5 ft from every other toon. They never
+  stand on a door's way-out spot or next to a fishing seat, come out of a door one at a time, and where a player is, a
+  bot that finds someone standing inside it steps aside. They still walk past each other, as toons do.
 - **Shops and buildings through the real doors.** The gag shop (buying gags from the clerk), Toon HQ (talking to the
   officers), the clothes shop, pet shop, bank, library, school and Toon Hall. Only a few bots go into one shop at a
   time.
@@ -464,6 +468,7 @@ These are constants in the code, not config keys: change them there and restart 
 | `bots-progress.txt` / `bots-progress.log` | levelling: tiers, ToonTasks held, every goal change and level-up |
 | `bots-picks.log` | one line per gag pick with the reason, plus help calls |
 | `bots-battle.txt`, `bots-coghq.txt`, `bots-life.txt`, `bots-p9.json`, `p6_trolley.json` | counters for battles, Cog HQ runs, playground life, player commands and the trolley |
+| `bots-space.json` | personal space counters (stops moved to a free spot, steps aside) and their cost, every 30 s |
 
 The bot AI also prints `[TTBOTS]` lines in its window (`[TTBOTS-HWN]` for Halloween).
 
@@ -475,6 +480,7 @@ These are for testing; nothing needs them in normal play.
 | `bots-coghq.cmd` | one run per line, e.g. `factory 4 front`, `mint 3 coin`, `stage 4 a`, `cgc 4 front`, `vp 6`: picks free eligible bots, sends them to that facility or boss and starts the run. `bossruns on` allows bot-only boss runs (off at every start). Renamed `.done` once read |
 | `bots-w2test.txt` | one line each, run once: `phone auto`, `mailbox auto`, `friend auto` (or a bot key / toon id) sends a bot on an estate phone or mailbox trip, or makes two bots friends |
 | `bots-street.on`, `bots-moves.on` | while the file exists, samples street life (`bots-street.jsonl`) or every finished move (`bots-moves.jsonl`) |
+| `bots-gaps.on` | while the file exists, every pair of toons standing closer than 2.5 ft (how long, what each was doing) and a count every 30 s go to `bots-gaps.jsonl` |
 
 ## Configuration
 `etc/Configrc.prc` is read by the client, the AI, UberDOG and the bot AI. Restart the servers after editing it.
@@ -601,6 +607,7 @@ battle sense, help calls, running from lost fights, levelling from 1 with ToonTa
 > Keep this list current: when an item ships, move it to Recent changes with the date, then add what is next.
 - [ ] Start scripts for the bot AI in `win32/`, `linux/` and `darwin/` (today it starts with the command above).
 - [ ] My family's play-test of the levelling bots (live since 2026-09-30).
+- [ ] A look at bot spacing in game (live since 2026-10-04).
 - [ ] Later ToonTasks seen working live as the bots reach them: Donald's Dock, Daisy Gardens and Minnie's Melodyland
       building and factory tasks (already passed on a test copy of the server), then Cog HQ and boss tasks.
 - [ ] A bot finishing the whole Trick-or-Treat hunt (all six playgrounds) live and earning its pumpkin head.
@@ -612,6 +619,11 @@ battle sense, help calls, running from lost fights, levelling from 1 with ToonTa
 - [ ] A fresh-PC test of this guide on Windows and Linux.
 
 ## Recent changes
+- 2026-10-04 Personal space is live on the server: 0 toons standing inside each other in Toontown Central in the
+  first check (bot toons only).
+- 2026-10-04 Bots keep personal space where they stop (landmarks, doors, the trolley, fishing ponds, elevators,
+  battles). Measured with a game client on a test copy of the server: toons standing inside each other in Toontown
+  Central went from about 1.8 pairs at any moment to 0.1, on a street from 0.2 to 0.02.
 - 2026-10-04 Start scripts for the bot toons: `win32/start_bot_ai.bat` and `linux/start-bot-ai.sh`.
 - 2026-10-04 README: renamed to Toontown Classic with Bots; full install and run guide, the complete bot feature
   list, bot settings, changes list.

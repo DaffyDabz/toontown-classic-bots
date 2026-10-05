@@ -18,6 +18,7 @@ import random
 from panda3d.core import Point3
 
 from toontown.bots import battlebrain as bb
+from toontown.bots import space
 from toontown.bots.activities import Activity, register
 from toontown.bots.activities import lifekit as kit
 from toontown.bots.BotToon import RUN_SPEED
@@ -335,9 +336,12 @@ class StreetBattle(Activity):
         self.phase = 'tojoin'
         self.until = globalClock.getRealTime() + 30.0
         self.label = 'to-battle'
-        # stop about 9 ft short of the centre: the battle's collision tube, where the client joins
+        # stop about 9 ft short of the centre: the battle's collision tube, where the client joins; never inside one
+        # of its toons standing there (personal space: the first spot round the tube clear of them)
         ang = math.atan2(self.bot.pos[1] - p[1], self.bot.pos[0] - p[0])
-        tx, ty = p[0] + math.cos(ang) * 9.0, p[1] + math.sin(ang) * 9.0
+        pts = [(p[0] + math.cos(ang + math.radians(da)) * 9.0, p[1] + math.sin(ang + math.radians(da)) * 9.0, p[2])
+               for da in (0, 25, -25, 50, -50, 75, -75)]
+        tx, ty = space.freePoint(self.bot, pts, keepOut=False)[:2]
         if self.__dist(p) > 12.0 and not self.bot.walkToPos(tx, ty, p[2], RUN_SPEED, 'run'):
             return False
         return True

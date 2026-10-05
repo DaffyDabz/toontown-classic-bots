@@ -31,6 +31,7 @@ from direct.directnotify import DirectNotifyGlobal
 from direct.distributed.ClockDelta import globalClockDelta
 from panda3d.core import NodePath, Point3
 
+from toontown.bots import space
 from toontown.bots.activities import Activity, register
 from toontown.bots.BotToon import WALK_SPEED
 from toontown.fishing import FishGlobals, FishingTargetGlobals
@@ -526,6 +527,10 @@ class Fishing(Activity):
             if k is None:
                 return False
             bot.path = [wm.pos(k) + (k,)]
+            # personal space: that node is right by the seat (the next toon sits there): on to a free node near it
+            k2 = space.freeNode(bot.director, bot.area, k, bot)
+            if k2 != k:
+                bot.path += [wm.pos(n) + (n,) for n in (wm.pathNodes(k, k2) or [k])[1:]]
             bot.speed = WALK_SPEED
             bot.setAnim('walk')
             self.phase = 'stepOff'
@@ -599,8 +604,14 @@ class Fishing(Activity):
         if k is None:
             return False
         z = wm.pos(k)[2]
-        if not bot.walkToPos(x, y, z, WALK_SPEED):
-            return False
+        if space.clear(bot.director, bot.area, x, y, z, bot):
+            if not bot.walkToPos(x, y, z, WALK_SPEED):
+                return False
+        else:
+            # personal space: a toon already stands at the counter: wait on the free node next to it
+            k2 = space.freeNode(bot.director, bot.area, k, bot)
+            if not (bot.walkTo(k2, WALK_SPEED, exact=True) or k2 == bot.node):
+                return False
         self.phase = 'toSell'
         self.until = globalClock.getRealTime() + 120.0
         return True

@@ -20,6 +20,7 @@ from direct.directnotify import DirectNotifyGlobal
 from panda3d.core import Point3
 
 from otp.otpbase import OTPGlobals
+from toontown.bots import space
 from toontown.bots.BotToon import RUN_SPEED, WALK_SPEED
 
 QUIET = OTPGlobals.QuietZone
@@ -267,6 +268,7 @@ class BotTravel:
         bot.speed = RUN_SPEED
         on = a.nodeNear(*a.wm.pos(node)[:2], radius=25.0)
         if on is not None:
+            on = space.freeNode(self.director, a, on, bot)       # personal space: a step clear of anyone there
             nodes = a.wm.pathNodes(node, on)
             bot.path += [a.wm.pos(k) + (k,) for k in nodes[1:]]
         bot.moving = True
@@ -276,6 +278,14 @@ class BotTravel:
     def _arrive_door(self):
         a, bot, d = self.dest, self.bot, self.director
         door = d.pickDoor(a)
+        # personal space: every client draws a toon coming out of a door on the same spot in front of it; a door
+        # with a toon standing on that spot is passed over for another (a few tries, then the teleport hole)
+        for _ in range(4):
+            if door is None or (space.doorFree(door[1]) and space.clear(d, a, *a.wm.pos(a.placeNode(door[0])), me=bot)):
+                break
+            door = d.pickDoor(a)
+        else:
+            door = None
         if door is None:
             return self._arrive_teleport()
         place, doId = door
@@ -290,6 +300,7 @@ class BotTravel:
         bot.setAnim('neutral', force=True)
         bot.relocate(d.world.doorZone(a, place), area=a)
         bot.send('requestExit', [], doId=doId, className='DistributedDoor')
+        space.doorUsed(doId)
         d.count('in', 'door')
         self.phase, self.until = 'doorout', self.__now() + DOOR_OUT_TIME
 

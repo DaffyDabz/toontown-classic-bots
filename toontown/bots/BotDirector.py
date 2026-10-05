@@ -38,6 +38,7 @@ from toontown.bots.BotWorld import World, SHARED, ELIGIBLE, AREA_TARGETS
 from toontown.bots import BotVis
 from toontown.bots import progress_pool
 from toontown.bots import halloween
+from toontown.bots import space
 
 TICK = 0.05              # smoothness: a watched moving bot is ticked every pass, sends every ~0.1 s
 SYNC_EVERY = 30.0        # P10: s between clock resync bursts
@@ -354,8 +355,17 @@ class BotDirector(DirectObject):
         return a._comp[k] == a._comp[bot.node]
 
     def spawnNode(self, area, bot=None):
-        """Where a toon shows up: near a landmark half the time (fountain, gazebo, shops...), else
-        anywhere on the ground."""
+        """Where a toon shows up (personal space: a node no toon stands on or walks to, space.freeNode)."""
+        k = self.__spawnPick(area)
+        try:
+            space.STATS['arrivals'] += 1
+            return space.freeNode(self, area, k, bot)
+        except Exception:
+            self.error('space spawn', traceback.format_exc())
+            return k
+
+    def __spawnPick(self, area):
+        """Near a landmark half the time (fountain, gazebo, shops...), else anywhere on the ground."""
         if area.kind == 'street' and area.players and random.random() < 0.75:
             # P7: on the street a real player walks, toons show up where he can see them
             for avId in area.players:
@@ -735,6 +745,7 @@ class BotDirector(DirectObject):
             self.__rotate(now, counts)
             self.__freeBots(now)
         self.__streetSample(now)
+        space.sample(self, now)                      # personal space proof sampler (<run>/bots-gaps.on)
         if now - self.lastStatus >= 5.0:
             self.lastStatus = now
             self.__writeStatus(counts)

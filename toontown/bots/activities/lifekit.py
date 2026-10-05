@@ -26,6 +26,7 @@ from direct.distributed.ClockDelta import globalClockDelta
 from panda3d.core import Point3
 
 from otp.otpbase import OTPGlobals
+from toontown.bots import space
 from toontown.bots.BotToon import WALK_SPEED, replyTo, tripSpeed
 
 notify = DirectNotifyGlobal.directNotify.newCategory('BotLife')
@@ -368,6 +369,7 @@ INTERIOR_OF = {'gagshop': 'gagshop', 'hq': 'hq', 'petshop': 'petshop', 'toonhall
 LABEL_OF = {'gagshop': 'in-shop', 'hq': 'in-HQ', 'petshop': 'in-shop', 'clothes': 'in-shop', 'toonhall': 'in-building',
             'door': 'in-building', 'bank': 'in-building', 'library': 'in-building', 'school': 'in-building'}
 CAP = {'gagshop': 3, 'hq': 2, 'petshop': 2, 'clothes': 2}      # bots inside at once (default 2)
+EXIT_WAIT = 6.0         # personal space: s a bot waits inside while a toon stands on the door's way-out spot
 
 
 def interiorZone(extZone, block):
@@ -533,6 +535,12 @@ class Visit:
             return self.__stay(now)
         elif ph == 'leavewalk':
             if not bot.path:
+                # personal space: every client draws a toon coming out of a door on one spot in front of it; while
+                # a toon stands there, wait inside a moment (EXIT_WAIT s at most)
+                if not getattr(self, 'exitBy', 0.0):
+                    self.exitBy = now + EXIT_WAIT
+                if now < self.exitBy and not self.__exitClear():
+                    return True
                 self.__faceDoor()
                 bot.setAnim('neutral')
                 self.reply = None
@@ -546,7 +554,8 @@ class Visit:
                 bot.setAnim('walk')
                 self.phase, self.until = 'doorout', now + 1.6
         elif ph == 'doorout':
-            if now >= self.until:
+            # (personal space: the way-out spot looked again just before stepping out, up to EXIT_WAIT s more)
+            if now >= self.until and (self.__exitClear() or now >= self.until + EXIT_WAIT):
                 self.__comeOut()
                 self.phase, self.until = 'out', now + 2.0
         elif ph == 'out':
@@ -594,9 +603,17 @@ class Visit:
         bot.setAnim('neutral', force=True)
         bot.relocate(self.extZone)
         bot.send('requestExit', [], doId=self.extDoId, className='DistributedDoor')
+        space.doorUsed(self.extDoId)
         LIFE.kind('door_exit', self.kind)
         self.inside = False
         self.__closeView()
+
+    def __exitClear(self):
+        """Nobody stands where this door puts a toon coming out (its walk-map node and its step)."""
+        if not space.doorFree(self.extDoId):
+            return False                 # someone came out of it a moment ago
+        return all(space.clear(self.d, self.area, p[0], p[1], p[2], self.bot) for p in space.doorSpots(self.area)
+                   if math.hypot(p[0] - self.place['pos'][0], p[1] - self.place['pos'][1]) < 6.0)
 
     def __closeView(self):
         if self.view is not None:
